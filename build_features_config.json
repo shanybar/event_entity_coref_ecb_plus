@@ -1,0 +1,30 @@
+{
+  "train_text_file":"data/interim/kian_split/ECB_Train_corpus.txt",
+  "dev_text_file":"data/interim/kian_split/ECB_Dev_corpus.txt",
+  "test_text_file":"data/interim/kian_split/ECB_Test_corpus.txt",
+
+  "train_event_mentions":"data/interim/kian_split/ECB_Train_Event_gold_mentions.json",
+  "dev_event_mentions":"data/interim/kian_split/ECB_Dev_Event_gold_mentions.json",
+  "test_event_mentions":"data/interim/kian_split/ECB_Test_Event_gold_mentions.json",
+
+  "train_entity_mentions":"data/interim/kian_split/ECB_Train_Entity_gold_mentions.json",
+  "dev_entity_mentions":"data/interim/kian_split/ECB_Dev_Entity_gold_mentions.json",
+  "test_entity_mentions":"data/interim/kian_split/ECB_Test_Entity_gold_mentions.json",
+
+  "pred_event_mentions":"data/interim/yang_split/predicted_mentions/ECB_Event_Test_predicted_mentions.json",
+  "pred_entity_mentions":"data/interim/yang_split/predicted_mentions/ECB_Entity_Test_predicted_mentions.json",
+
+  "use_dep": true,
+  "use_srl": true,
+  "use_prop": false,
+  "use_left_right_mentions": false,
+  "use_allen_srl":true,
+  "srl_output_path":"data/external/allen_srl/allen_srl.json",
+
+  "eval_mode": 2,
+  "load_elmo": true,
+  "options_file": "/home/nlp/barhoms/elmo/elmo_2x4096_512_2048cnn_2xhighway_5.5B_options.json",
+  "weight_file": "/home/nlp/barhoms/elmo/elmo_2x4096_512_2048cnn_2xhighway_5.5B_weights.hdf5"
+
+
+}

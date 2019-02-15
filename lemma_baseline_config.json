@@ -1,0 +1,12 @@
+{
+  "test_path":"data/processed/kian_split/full/test_data",
+
+  "test_use_gold_mentions": true,
+  "remove_singletons": false,
+  "eval_mode": 2,
+  "merge_sub_topics_to_topics": false,
+  "run_on_all_topics": false,
+
+  "load_predicted_topics": true,
+  "predicted_topics_path": "data/external/document_clustering/predicted_topics"
+}
