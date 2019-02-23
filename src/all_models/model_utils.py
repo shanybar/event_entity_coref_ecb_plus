@@ -593,7 +593,7 @@ def separate_clusters_to_sub_topics(clusters, is_event):
     return new_clusters
 
 
-def set_coref_chain_to_mentions(clusters, is_event, is_gold, intersect_with_gold, remove_singletons):
+def set_coref_chain_to_mentions(clusters, is_event, is_gold, intersect_with_gold,):
     '''
     Sets the predicted cluster id to all mentions in the cluster
     :param clusters: predicted clusters (a list of Corpus objects)
@@ -607,24 +607,9 @@ def set_coref_chain_to_mentions(clusters, is_event, is_gold, intersect_with_gold
     '''
     global clusters_count
     for cluster in clusters:
-        if remove_singletons and len(cluster.mentions.values()) == 1:
-            continue
         cluster.cluster_id = clusters_count
         for mention in cluster.mentions.values():
             mention.cd_coref_chain = clusters_count
-            # if is_gold:
-            #     tokens = mention.tokens
-            # else:
-            #     if intersect_with_gold:
-            #         tokens = mention.gold_tokens
-            #     else:
-            #         tokens = mention.tokens
-            #
-            # for token in tokens:
-            #     if is_event:
-            #         token.pred_cd_event_coref_chain.append(clusters_count)
-            #     else:
-            #         token.pred_cd_entity_coref_chain.append(clusters_count)
         clusters_count += 1
 
 
@@ -696,8 +681,8 @@ def write_event_coref_results(corpus, out_dir, config_dict):
     :param out_dir: output directory
     :param config_dict: configuration dictionary
     '''
-    if config_dict["eval_mode"] == 1:
-        out_file = os.path.join(out_dir, 'CD_test_event_clusters.response_conll')
+    if not config_dict["test_use_gold_mentions"]:
+        out_file = os.path.join(out_dir, 'CD_test_event_span_based.response_conll')
         write_span_based_cd_coref_clusters(corpus, out_file, is_event=True, is_gold=False,
                                            use_gold_mentions=config_dict["test_use_gold_mentions"])
     else:
@@ -715,8 +700,8 @@ def write_entity_coref_results(corpus, out_dir,config_dict):
     :param out_dir: output directory
     :param config_dict: configuration dictionary
     '''
-    if config_dict["eval_mode"] == 1:
-        out_file = os.path.join(out_dir, 'CD_test_entity_clusters.response_conll')
+    if not config_dict["test_use_gold_mentions"]:
+        out_file = os.path.join(out_dir, 'CD_test_entity_span_based.response_conll')
         write_span_based_cd_coref_clusters(corpus, out_file, is_event=False, is_gold=False,
                                            use_gold_mentions=config_dict["test_use_gold_mentions"])
     else:
@@ -753,7 +738,6 @@ def create_event_cluster_bow_lexical_vec(event_cluster,model, device, use_char_e
         head_tensor = find_word_embed(head, model, device)
         if use_char_embeds:
             char_tensor = get_char_embed(head, model, device)
-            # char_tensor = get_char_embed(event_mention.mention_str, model, device)
             if not requires_grad:
                 char_tensor = char_tensor.detach()
             cat_tensor = torch.cat([head_tensor, char_tensor], 1)
@@ -798,7 +782,6 @@ def create_entity_cluster_bow_lexical_vec(entity_cluster, model, device, use_cha
             mention_bow += word_tensor
 
         mention_bow /= len(entity_mention.get_tokens())
-        # mention_bow /= len(mention_embeds) #
 
         if use_char_embeds:
             if not requires_grad:
@@ -998,7 +981,7 @@ def generate_cluster_pairs(clusters, is_train):
     return pairs, test_pairs
 
 
-def get_mention_span_rep(mention, device, model, docs, is_event, requires_grad, use_elmo):
+def get_mention_span_rep(mention, device, model, docs, is_event, requires_grad):
     '''
     Creates for a mention its context and span text vectors and concatenates them.
     :param mention: an Mention object (either an EventMention or an EntityMention)
@@ -1008,23 +991,10 @@ def get_mention_span_rep(mention, device, model, docs, is_event, requires_grad, 
     :param is_event: True if mention is an event mention and False if it is an entity mention
     :param requires_grad: True if tensors require gradients (for training time) , and
     False for inference time.
-    :param use_elmo: whether to use ELMo embeddings to represent the mention's
-    context (recommended) or to use the output of Bi-directional LSTM as an context
-     embeddings (performs worse than ELMo embeddings)
-    :return: a tensor of size (1, 1374)
+    :return: a tensor with size (1, 1374)
     '''
-    if use_elmo:
-        span_tensor = mention.head_elmo_embeddings.to(device).view(1,-1)
-    else:
-        sent = docs[mention.doc_id].sentences[mention.sent_id]
-        sent_embeds = []
-        for token in sent.get_tokens():
-            word_tensor = find_word_embed(token.get_token(), model, device)
-            char_tensor = get_char_embed(token.get_token(), model, device)
-            word_rep_tensor = torch.cat([word_tensor, char_tensor], 1)
-            sent_embeds.append(word_rep_tensor)
 
-        span_tensor = model.get_span_vec(sent_embeds, mention.start_offset, mention.end_offset, device)
+    span_tensor = mention.head_elmo_embeddings.to(device).view(1,-1)
 
     if is_event:
         head = mention.mention_head
@@ -1039,10 +1009,12 @@ def get_mention_span_rep(mention, device, model, docs, is_event, requires_grad, 
         for mention_word_tensor in mention_embeds:
             mention_bow += mention_word_tensor
         char_embeds = get_char_embed(mention.mention_str, model, device)
-        mention_bow = mention_bow / float(len(mention_embeds))
+
+        if len(mention_embeds) > 0:
+            mention_bow = mention_bow / float(len(mention_embeds))
+
         mention_tensor = torch.cat([mention_bow, char_embeds], 1)
 
-    # cat the char embed of the head with the head embedding
     mention_span_rep = torch.cat([span_tensor, mention_tensor], 1)
 
     if requires_grad:
@@ -1055,7 +1027,7 @@ def get_mention_span_rep(mention, device, model, docs, is_event, requires_grad, 
 
 
 def create_mention_span_representations(mentions, model, device, topic_docs, is_event,
-                                        requires_grad, use_elmo):
+                                        requires_grad):
     '''
     Creates for a set of mentions their context and span text vectors.
     :param mentions: a list of Mention objects (an EventMention or an EntityMention)
@@ -1065,17 +1037,15 @@ def create_mention_span_representations(mentions, model, device, topic_docs, is_
     :param is_event: True if mention is an event mention and False if it is an entity mention
     :param requires_grad: True if tensors require gradients (for training time) , and
     False for inference time.
-    :param use_elmo: use_elmo: whether to use ELMo embeddings to represent the mention's
-    context (recommended) or to use the output of Bi-directional LSTM as an context
      embeddings (performs worse than ELMo embeddings)
     '''
     for mention in mentions:
         mention.span_rep = get_mention_span_rep(mention, device, model, topic_docs,
-                                                is_event, requires_grad, use_elmo)
+                                                is_event, requires_grad)
 
 
 def mention_pair_to_model_input(pair, model, device, topic_docs, is_event, requires_grad,
-                                use_elmo, use_args_feats, use_binary_feats, other_clusters):
+                                 use_args_feats, use_binary_feats, other_clusters):
     '''
     Given a pair of mentions, the function builds the input to the network (the mention-pair
     representation) and returns it.
@@ -1087,9 +1057,6 @@ def mention_pair_to_model_input(pair, model, device, topic_docs, is_event, requi
      an entity mention pair.
     :param requires_grad: True if tensors require gradients (for training time) , and
     False for inference time.
-    :param use_elmo: whether to use ELMo embeddings to represent the mention's
-    context (recommended) or to use the output of Bi-directional LSTM as an context
-     embeddings (performs worse than ELMo embeddings)
     :param use_args_feats: whether to use the semantically-dependent mention vectors or to ablate
     them.
     :param use_binary_feats: whether to use the binary coreference features or to ablate
@@ -1105,9 +1072,9 @@ def mention_pair_to_model_input(pair, model, device, topic_docs, is_event, requi
     # create span representation
     if requires_grad :
         mention_1.span_rep = get_mention_span_rep(mention_1, device, model, topic_docs,
-                                                  is_event, requires_grad, use_elmo)
+                                                  is_event, requires_grad)
         mention_2.span_rep = get_mention_span_rep(mention_2, device, model, topic_docs,
-                                                  is_event, requires_grad, use_elmo)
+                                                  is_event, requires_grad)
     span_rep_1 = mention_1.span_rep
     span_rep_2 = mention_2.span_rep
 
@@ -1148,7 +1115,7 @@ def mention_pair_to_model_input(pair, model, device, topic_docs, is_event, requi
 
 
 def train_pairs_batch_to_model_input(batch_pairs, model, device, topic_docs, is_event,
-                                     use_elmo, use_args_feats, use_binary_feats, other_clusters):
+                                      use_args_feats, use_binary_feats, other_clusters):
     '''
     Creates input tensors (mention pair representations) to all mention pairs in the batch
     (for training time).
@@ -1159,9 +1126,6 @@ def train_pairs_batch_to_model_input(batch_pairs, model, device, topic_docs, is_
     :param topic_docs: the current topic's documents
     :param is_event:  True if pairs are event mention pairs and False if they are
     entity mention pairs.
-    :param use_elmo: whether to use ELMo embeddings to represent the mention's
-    context (recommended) or to use the output of Bi-directional LSTM as an context
-     embeddings (performs worse than ELMo embeddings)
     :param use_args_feats: whether to use the semantically-dependent mention vectors or to ablate
     them.
     :param use_binary_feats: whether to use the binary coreference features or to ablate
@@ -1176,7 +1140,6 @@ def train_pairs_batch_to_model_input(batch_pairs, model, device, topic_docs, is_
     for pair in batch_pairs:
         mention_pair_tensor = mention_pair_to_model_input(pair, model, device, topic_docs,
                                                           is_event, requires_grad=True,
-                                                          use_elmo=use_elmo,
                                                           use_args_feats=use_args_feats,
                                                           use_binary_feats=use_binary_feats,
                                                           other_clusters=other_clusters)
@@ -1234,7 +1197,6 @@ def train(cluster_pairs, model, optimizer, loss_function, device, topic_docs, ep
             batches_count += 1
             batch_tensor, q_tensor = train_pairs_batch_to_model_input(batch_pairs, model,
                                                                 device, topic_docs, is_event,
-                                                                      config_dict["use_elmo"],
                                                                       config_dict["use_args_feats"],
                                                                       config_dict["use_binary_feats"],
                                                                       other_clusters)
@@ -1295,7 +1257,7 @@ def cluster_pairs_to_mention_pairs(cluster_pairs):
 
 
 def test_pairs_batch_to_model_input(batch_pairs, model, device, topic_docs, is_event,
-                                    use_elmo, use_args_feats, use_binary_feats, other_clusters):
+                                     use_args_feats, use_binary_feats, other_clusters):
 
     '''
     Creates input tensors (mention pair representations) for all mention pairs in the batch
@@ -1307,9 +1269,6 @@ def test_pairs_batch_to_model_input(batch_pairs, model, device, topic_docs, is_e
     :param topic_docs: the current topic's documents
     :param is_event:  True if pairs are event mention pairs and False if they are
     entity mention pairs.
-    :param use_elmo: whether to use ELMo embeddings to represent the mention's
-    context (recommended) or to use the output of Bi-directional LSTM as an context
-     embeddings (performs worse than ELMo embeddings)
     :param use_args_feats: whether to use the semantically-dependent mention vectors or to ablate
     them.
     :param use_binary_feats: whether to use the binary coreference features or to ablate
@@ -1324,7 +1283,6 @@ def test_pairs_batch_to_model_input(batch_pairs, model, device, topic_docs, is_e
     for pair in batch_pairs:
         mention_pair_tensor = mention_pair_to_model_input(pair, model, device, topic_docs,
                                                           is_event, requires_grad=False,
-                                                          use_elmo=use_elmo,
                                                           use_args_feats=use_args_feats,
                                                           use_binary_feats=use_binary_feats,
                                                           other_clusters=other_clusters)
@@ -1364,7 +1322,7 @@ def key_with_max_val(d):
 
 
 def merge_clusters(pair_to_merge, clusters ,other_clusters, is_event,
-                   model, device, topic_docs, curr_pairs_dict, use_elmo,
+                   model, device, topic_docs, curr_pairs_dict,
                    use_args_feats, use_binary_feats):
     '''
     This function:
@@ -1384,9 +1342,6 @@ def merge_clusters(pair_to_merge, clusters ,other_clusters, is_event,
     :param device: Pytorch device object
     :param topic_docs: current topic's documents
     :param curr_pairs_dict: dictionary contains the current candidate cluster pairs
-    :param use_elmo: whether to use ELMo embeddings to represent a mention's
-    context (recommended) or to use the output of Bi-directional LSTM as an context
-     embeddings (performs worse than ELMo embeddings)
     :param use_args_feats: whether to use the semantically-dependent mention vectors or to ablate
     them.
     :param use_binary_feats: whether to use the binary coreference features or to ablate
@@ -1429,12 +1384,12 @@ def merge_clusters(pair_to_merge, clusters ,other_clusters, is_event,
 
     # create scores for the new pairs
     for pair in new_pairs:
-        pair_score = assign_score(pair, model, device, topic_docs, is_event, use_elmo,
+        pair_score = assign_score(pair, model, device, topic_docs, is_event,
                                   use_args_feats, use_binary_feats, other_clusters)
         curr_pairs_dict[pair] = pair_score
 
 
-def assign_score(cluster_pair, model, device, topic_docs, is_event, use_elmo, use_args_feats,
+def assign_score(cluster_pair, model, device, topic_docs, is_event, use_args_feats,
                  use_binary_feats, other_clusters):
     '''
     Assigns coreference (or quality of merge) score to a cluster pair by averaging the mention-pair
@@ -1444,9 +1399,6 @@ def assign_score(cluster_pair, model, device, topic_docs, is_event, use_elmo, us
     :param device: Pytorch device
     :param topic_docs: current topic's documents
     :param is_event: True if cluster_pair is an event pair and False if it's an entity pair
-    :param use_elmo: whether to use ELMo embeddings to represent a mention's
-    context (recommended) or to use the output of Bi-directional LSTM as an context
-     embeddings (performs worse than ELMo embeddings)
     :param use_args_feats: whether to use the semantically-dependent mention vectors or to ablate
     them.
     :param use_binary_feats: whether to use the binary coreference features or to ablate
@@ -1461,7 +1413,7 @@ def assign_score(cluster_pair, model, device, topic_docs, is_event, use_elmo, us
     scores_sum = 0
     for batch_pairs in batches:
         batch_tensor = test_pairs_batch_to_model_input(batch_pairs, model, device,
-                                                       topic_docs, is_event, use_elmo=use_elmo,
+                                                       topic_docs, is_event,
                                                        use_args_feats=use_args_feats,
                                                        use_binary_feats=use_binary_feats,
                                                        other_clusters=other_clusters)
@@ -1476,7 +1428,7 @@ def assign_score(cluster_pair, model, device, topic_docs, is_event, use_elmo, us
 
 
 def merge(clusters, cluster_pairs, other_clusters,model, device, topic_docs, epoch, topics_counter,
-          topics_num, threshold, is_event, use_elmo, use_args_feats, use_binary_feats):
+          topics_num, threshold, is_event, use_args_feats, use_binary_feats):
     '''
     Merges cluster pairs in agglomerative manner till it reaches a pre-defined threshold. In each step, the function merges
     cluster pair with the highest score, and updates the candidate cluster pairs according to the
@@ -1498,9 +1450,6 @@ def merge(clusters, cluster_pairs, other_clusters,model, device, topic_docs, epo
     :param topics_num: total number of topics
     :param threshold: merging threshold
     :param is_event: True if clusters are event clusters and false if they are entity clusters
-    :param use_elmo: whether to use ELMo embeddings to represent a mention's
-    context (recommended) or to use the output of Bi-directional LSTM as an context
-     embeddings (performs worse than ELMo embeddings)
     :param use_args_feats: whether to use the semantically-dependent mention vectors or to ablate
     them.
     :param use_binary_feats: whether to use the binary coreference features or to ablate
@@ -1512,7 +1461,7 @@ def merge(clusters, cluster_pairs, other_clusters,model, device, topic_docs, epo
     mode = 'event' if is_event else 'entity'
     # init the scores (that the model assigns to the pairs)
     for pair in cluster_pairs:
-        pair_score = assign_score(pair, model, device, topic_docs, is_event, use_elmo,
+        pair_score = assign_score(pair, model, device, topic_docs, is_event,
                                   use_args_feats,use_binary_feats, other_clusters)
         pairs_dict[pair] = pair_score
 
@@ -1532,7 +1481,7 @@ def merge(clusters, cluster_pairs, other_clusters,model, device, topic_docs, epo
                 epoch, topics_counter, topics_num, mode, str(max_score), str(max_pair[0]),
                 str(max_pair[1])))
             merge_clusters(max_pair, clusters, other_clusters, is_event,
-                           model, device, topic_docs, pairs_dict, use_elmo, use_args_feats,
+                           model, device, topic_docs, pairs_dict, use_args_feats,
                            use_binary_feats)
         else:
             print('Max score = {} is lower than threshold = {},'
@@ -1543,7 +1492,7 @@ def merge(clusters, cluster_pairs, other_clusters,model, device, topic_docs, epo
 
 
 def test_model(clusters, other_clusters, model, device, topic_docs, is_event, epoch,
-               topics_counter, topics_num, threshold, use_elmo, use_args_feats,
+               topics_counter, topics_num, threshold, use_args_feats,
                use_binary_feats):
     '''
     Runs the inference procedure for a specific model (event/entity model).
@@ -1558,9 +1507,6 @@ def test_model(clusters, other_clusters, model, device, topic_docs, is_event, ep
     :param topics_num: total number of topics
     :param threshold: merging threshold
     :param is_event: True if clusters are event clusters and false if they are entity clusters
-    :param use_elmo: whether to use ELMo embeddings to represent a mention's
-    context (recommended) or to use the output of Bi-directional LSTM as an context
-     embeddings (performs worse than ELMo embeddings)
     :param use_args_feats: whether to use the semantically-dependent mention vectors or to ablate
     them.
     :param use_binary_feats: whether to use the binary coreference features or to ablate them.
@@ -1574,7 +1520,7 @@ def test_model(clusters, other_clusters, model, device, topic_docs, is_event, ep
 
     # merging clusters pairs till reaching a pre-defined threshold
     merge(clusters, cluster_pairs, other_clusters,model, device, topic_docs, epoch,
-          topics_counter, topics_num, threshold, is_event, use_elmo, use_args_feats,
+          topics_counter, topics_num, threshold, is_event, use_args_feats,
           use_binary_feats)
 
 
@@ -1603,10 +1549,8 @@ def test_models(test_set, cd_event_model,cd_entity_model, device,
     all_event_clusters = []
     all_entity_clusters = []
 
-    if config_dict["test_merge_sub_topics_to_topics"]:
-        topics = merge_sub_topics_to_topics(test_set) # use the gold topics
-    elif config_dict["load_predicted_topics"]:
-        topics = load_predicted_topics(test_set,config_dict)
+    if config_dict["load_predicted_topics"]:
+        topics = load_predicted_topics(test_set,config_dict) # use the predicted sub-topics
     else:
         topics = test_set.topics # use the gold sub-topics
 
@@ -1628,17 +1572,17 @@ def test_models(test_set, cd_event_model,cd_entity_model, device,
 
             event_mentions, entity_mentions = topic_to_mention_list(topic,
                                                                     is_gold=config_dict["test_use_gold_mentions"])
-            if config_dict["eval_mode"] == 2: # Cybulska setup
-                all_event_mentions.extend(event_mentions)
-                all_entity_mentions.extend(entity_mentions)
+
+            all_event_mentions.extend(event_mentions)
+            all_entity_mentions.extend(entity_mentions)
 
             # create span rep for both entity and event mentions
             create_mention_span_representations(event_mentions, cd_event_model, device,
                                                 topic.docs, is_event=True,
-                                                requires_grad=False, use_elmo = config_dict["use_elmo"])
+                                                requires_grad=False)
             create_mention_span_representations(entity_mentions, cd_entity_model, device,
                                                 topic.docs, is_event=False,
-                                                requires_grad=False, use_elmo = config_dict["use_elmo"])
+                                                requires_grad=False)
 
             print('number of event mentions : {}'.format(len(event_mentions)))
             print('number of entity mentions : {}'.format(len(entity_mentions)))
@@ -1647,48 +1591,15 @@ def test_models(test_set, cd_event_model,cd_entity_model, device,
             topic.event_mentions = event_mentions
             topic.entity_mentions = entity_mentions
 
-            if config_dict["eval_mode"] == 1 and config_dict["test_use_gold_mentions"]:  # Yang setup
-                topic.set_gold_clusters(remove_singletons=config_dict["remove_singletons"])
-
-            if config_dict["test_init_wd_entity_with_gold"]:
-                wd_entity_clusters = create_gold_wd_clusters_organized_by_doc(entity_mentions, is_event=False)
-            else:
-                wd_entity_clusters = init_entity_wd_clusters(entity_mentions, doc_to_entity_mentions)
+            # initialize within-document entity clusters with the output of within-document system
+            wd_entity_clusters = init_entity_wd_clusters(entity_mentions, doc_to_entity_mentions)
 
             topic_entity_clusters = []
             for doc_id, clusters in wd_entity_clusters.items():
                 topic_entity_clusters.extend(clusters)
 
-            if config_dict["test_cluster_wd_first"]:
-                doc_to_wd_event_clusters_dict = init_wd(event_mentions, is_event=True)
-
-                for doc_id, event_clusters in doc_to_wd_event_clusters_dict.items():
-                    update_lexical_vectors(wd_entity_clusters[doc_id], cd_entity_model, device,
-                                           is_event=False, requires_grad=False)
-                    update_lexical_vectors(event_clusters, cd_event_model, device,
-                                           is_event=True, requires_grad=False)
-
-                    # Merge WD event clusters first (optional)
-                    print('Merge WD event clusters...')
-                    logging.info('Merge WD event clusters...')
-                    test_model(clusters=event_clusters, other_clusters=wd_entity_clusters[doc_id],
-                               model=cd_event_model, device=device,topic_docs=topic.docs, is_event=True, epoch=epoch,
-                               topics_counter=topics_counter, topics_num=topics_num,
-                               threshold=config_dict["event_merge_threshold"],
-                               use_elmo=config_dict["use_elmo"],
-                               use_args_feats=config_dict["use_args_feats"],
-                               use_binary_feats=config_dict["use_binary_feats"])
-
-                topic_event_clusters = []
-                for doc_id, event_clusters in doc_to_wd_event_clusters_dict.items():
-                    topic_event_clusters.extend(event_clusters)
-
-            else:
-                if config_dict["test_init_with_lemma_baseline"]:
-                    topic_event_clusters = init_clusters_with_lemma_baseline(event_mentions,
-                                                                             is_event=True)
-                else:
-                    topic_event_clusters = init_cd(event_mentions, is_event=True)
+            # initialize event clusters as singletons
+            topic_event_clusters = init_cd(event_mentions, is_event=True)
 
             # init cluster representation
             update_lexical_vectors(topic_entity_clusters, cd_entity_model, device,
@@ -1699,14 +1610,9 @@ def test_models(test_set, cd_event_model,cd_entity_model, device,
             entity_th = config_dict["entity_merge_threshold"]
             event_th = config_dict["event_merge_threshold"]
 
-            for i in range(1,config_dict["merge_iters"]+1): # Consider changing that
+            for i in range(1,config_dict["merge_iters"]+1):
                 print('Iteration number {}'.format(i))
                 logging.info('Iteration number {}'.format(i))
-
-                if config_dict["test_th_decay"]:
-                    if i > 1: # optional
-                        entity_th -= 0.1
-                        event_th -= 0.1
 
                 # Merge entities
                 print('Merge entity clusters...')
@@ -1715,7 +1621,6 @@ def test_models(test_set, cd_event_model,cd_entity_model, device,
                            model=cd_entity_model, device=device, topic_docs=topic.docs,is_event=False,epoch=epoch,
                            topics_counter=topics_counter, topics_num=topics_num,
                            threshold=entity_th,
-                           use_elmo = config_dict["use_elmo"],
                            use_args_feats=config_dict["use_args_feats"],
                            use_binary_feats=config_dict["use_binary_feats"])
                 # Merge events
@@ -1725,37 +1630,16 @@ def test_models(test_set, cd_event_model,cd_entity_model, device,
                            model=cd_event_model,device=device, topic_docs=topic.docs, is_event=True,epoch=epoch,
                            topics_counter=topics_counter, topics_num=topics_num,
                            threshold=event_th,
-                           use_elmo = config_dict["use_elmo"],
                            use_args_feats=config_dict["use_args_feats"],
                            use_binary_feats=config_dict["use_binary_feats"])
 
-            if config_dict["eval_mode"] == 1 and config_dict["test_merge_sub_topics_to_topics"]:  # Yang setup
-                topic_event_clusters = separate_clusters_to_sub_topics(topic_event_clusters,
-                                                                       is_event=True)
-                topic_entity_clusters = separate_clusters_to_sub_topics(topic_entity_clusters,
-                                                                        is_event=False)
-
-            if config_dict["eval_mode"] == 1 and config_dict["test_use_gold_mentions"]: # Yang setup
-                topic.set_predicted_clusters(topic_event_clusters, topic_entity_clusters,
-                                             remove_singletons=config_dict["remove_singletons"])
-
-                set_coref_chain_to_mentions(topic_event_clusters, is_event=True,
-                                            is_gold=config_dict["test_use_gold_mentions"],intersect_with_gold=True
-                                            ,remove_singletons=config_dict["remove_singletons"])
-                set_coref_chain_to_mentions(topic_entity_clusters, is_event=False,
-                                            is_gold=config_dict["test_use_gold_mentions"],intersect_with_gold=True
-                                            , remove_singletons=config_dict["remove_singletons"])
-
-            elif config_dict["eval_mode"] == 2:  # Cybulska setup
-                set_coref_chain_to_mentions(topic_event_clusters, is_event=True,
-                                            is_gold=config_dict["test_use_gold_mentions"],intersect_with_gold=True
-                                            ,remove_singletons=config_dict["remove_singletons"])
-                set_coref_chain_to_mentions(topic_entity_clusters, is_event=False,
-                                            is_gold=config_dict["test_use_gold_mentions"],intersect_with_gold=True
-                                            , remove_singletons=config_dict["remove_singletons"])
+            set_coref_chain_to_mentions(topic_event_clusters, is_event=True,
+                                        is_gold=config_dict["test_use_gold_mentions"],intersect_with_gold=True)
+            set_coref_chain_to_mentions(topic_entity_clusters, is_event=False,
+                                        is_gold=config_dict["test_use_gold_mentions"],intersect_with_gold=True)
 
             if write_clusters:
-                # Saved for analysis
+                # Save for analysis
                 all_event_clusters.extend(topic_event_clusters)
                 all_entity_clusters.extend(topic_entity_clusters)
 
@@ -1784,33 +1668,7 @@ def test_models(test_set, cd_event_model,cd_entity_model, device,
         with open(os.path.join(out_dir,'test_topics'), 'wb') as f:
             cPickle.dump(topics, f)
 
-    if config_dict["eval_mode"] == 1 and config_dict["test_use_gold_mentions"]: #Yang setup
-        event_b_scores = evaluate_documents(documents=topics.values(), metric=b_cubed, is_event=True)
-        event_ceafe_scores = evaluate_documents(documents=topics.values(), metric=ceafe, is_event=True)
-        event_muc_scores = evaluate_documents(documents=topics.values(), metric=muc, is_event=True)
-        event_conll_f1 = (event_b_scores[2] + event_muc_scores[2] + event_ceafe_scores[2]) / 3.0
-
-        logging.info('Event coref scores:')
-        logging.info('muc - {}'.format(event_muc_scores[2]))
-        logging.info('B3 - {}'.format(event_b_scores[2]))
-        logging.info('ceafe - {}'.format(event_ceafe_scores[2]))
-        logging.info('conll F1 - {}'.format(event_conll_f1))
-
-
-        entity_b_scores = evaluate_documents(documents=topics.values(), metric=b_cubed, is_event=False)
-        entity_muc_scores = evaluate_documents(documents=topics.values(), metric=muc, is_event=False)
-        entity_ceafe_scores = evaluate_documents(documents=topics.values(), metric=ceafe, is_event=False)
-        entity_conll_f1 = (entity_b_scores[2] + entity_muc_scores[2] + entity_ceafe_scores[2]) / 3.0
-
-        logging.info('Entity coref scores:')
-        logging.info('muc - {}'.format(entity_muc_scores[2]))
-        logging.info('B3 - {}'.format(entity_b_scores[2]))
-        logging.info('ceafe - {}'.format(entity_ceafe_scores[2]))
-        logging.info('conll F1 - {}'.format(entity_conll_f1))
-
-        return event_conll_f1, entity_conll_f1
-
-    elif config_dict["eval_mode"] == 2: #
+    if config_dict["test_use_gold_mentions"]:
         event_predicted_lst = [event.cd_coref_chain for event in all_event_mentions]
         true_labels = [event.gold_tag for event in all_event_mentions]
         true_clusters_set = set(true_labels)

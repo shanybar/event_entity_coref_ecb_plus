@@ -18,6 +18,7 @@ class Corpus(object):
         if topic_id not in self.topics:
             self.topics[topic_id] = topic
 
+
 class Topic(object):
     '''
     A class that represents a topic in the corpus.
@@ -26,16 +27,7 @@ class Topic(object):
     def __init__(self,topic_id):
         self.topic_id = topic_id
         self.docs = {}
-        self.gold_event_clusters = []
-        self.gold_entity_clusters = []
-        self.predicted_event_clusters = []
-        self.predicted_entity_clusters = []
-        self.event_mention_to_gold_cluster = None
-        self.entity_mention_to_gold_cluster = None
-        self.event_mention_id_to_gold = None
-        self.entity_mention_id_to_gold = None
-        self.event_mention_to_predicted_cluster = None
-        self.entity_mention_to_predicted_cluster = None
+
         self.event_mentions = []
         self.entity_mentions = []
 
@@ -47,81 +39,6 @@ class Topic(object):
         '''
         if doc_id not in self.docs:
             self.docs[doc_id] = doc
-
-    def set_gold_clusters(self, remove_singletons=False):
-        '''
-        Sets the gold coreference clusters in the topic
-        :param remove_singletons: whether to remove singleton clusters (as in Yang setting)
-        '''
-        event_to_gold = defaultdict(list)
-        entity_to_gold = defaultdict(list)
-        event_gold_tag_to_cluster = defaultdict(list)
-        entity_gold_tag_to_cluster = defaultdict(list)
-        event_mention_id_to_gold = defaultdict(list)
-        entity_mention_id_to_gold = defaultdict(list)
-        if len(self.event_mentions) > 0 and len(self.entity_mentions) > 0:
-            for event in self.event_mentions:
-                if event.gold_tag != '-':
-                    event_gold_tag_to_cluster[event.gold_tag].append(event)
-                    event_to_gold[event] = event_gold_tag_to_cluster[event.gold_tag]
-                    event_mention_id_to_gold[event.mention_id] = event.gold_tag
-            for entity in self.entity_mentions:
-                if entity.gold_tag != '-':
-                    entity_gold_tag_to_cluster[entity.gold_tag].append(entity)
-                    entity_to_gold[entity] = entity_gold_tag_to_cluster[entity.gold_tag]
-                    entity_mention_id_to_gold[entity.mention_id] = entity.gold_tag
-
-        if remove_singletons:
-            self.event_mention_to_gold_cluster = defaultdict(list)
-            self.entity_mention_to_gold_cluster = defaultdict(list)
-            # used for evaluation
-            self.gold_event_clusters = [val for key, val in event_gold_tag_to_cluster.items()
-                                        if len(val) > 1]
-            self.gold_entity_clusters = [val for key, val in entity_gold_tag_to_cluster.items()
-                                         if len(val) > 1]
-            for event, cluster in event_to_gold.items():
-                if len(cluster) > 1:
-                    self.event_mention_to_gold_cluster[event] = cluster
-            for entity, cluster in entity_to_gold.items():
-                if len(cluster) > 1:
-                    self.entity_mention_to_gold_cluster[entity] = cluster
-        else:
-        # used for evaluation
-            self.gold_event_clusters = [val for key, val in event_gold_tag_to_cluster.items()]
-            self.gold_entity_clusters = [val for key, val in entity_gold_tag_to_cluster.items()]
-            self.event_mention_to_gold_cluster = event_to_gold
-            self.entity_mention_to_gold_cluster = entity_to_gold
-
-        # for internal use
-        self.event_mention_id_to_gold = event_mention_id_to_gold
-        self.entity_mention_id_to_gold = entity_mention_id_to_gold
-
-    def set_predicted_clusters(self,event_clusters, entity_clusters, remove_singletons=False):
-        '''
-        Sets the predicted coreference clusters in the topic
-        :param event_clusters: predicted event clusters
-        :param entity_clusters: predicted entity clusters
-        :param remove_singletons: whether to remove singleton clusters (as in Yang setting)
-        '''
-        if remove_singletons:
-            self.predicted_event_clusters = [cluster.mentions.values() for cluster in
-                                             event_clusters if len(cluster.mentions.values()) > 1 ]
-            self.predicted_entity_clusters = [cluster.mentions.values() for cluster in
-                                              entity_clusters if len(cluster.mentions.values()) > 1]
-
-        else:
-            self.predicted_event_clusters = [cluster.mentions.values() for cluster in event_clusters]
-            self.predicted_entity_clusters = [cluster.mentions.values() for cluster in entity_clusters]
-
-        self.event_mention_to_predicted_cluster = defaultdict(list)
-        self.entity_mention_to_predicted_cluster = defaultdict(list)
-
-        for cluster in self.predicted_event_clusters:
-            for mention in cluster:
-                self.event_mention_to_predicted_cluster[mention] = cluster
-        for cluster in self.predicted_entity_clusters:
-            for mention in cluster:
-                self.entity_mention_to_predicted_cluster[mention] = cluster
 
 
 class Document(object):
@@ -270,7 +187,7 @@ class Sentence(object):
         else:
             self.gold_entity_mentions.append(mention)
 
-    def add_predicted_mention(self, mention, is_event):
+    def add_predicted_mention(self, mention, is_event, relaxed_match):
         '''
         This function gets a predicted mention object and adds it to the predicted event mentions list if the
         flag is_event = True. Otherwise the mention object will be added to the predicted entity mentions list.
@@ -286,9 +203,9 @@ class Sentence(object):
         else:
             self.pred_entity_mentions.append(mention)
 
-        return self.match_predicted_to_gold_mention(mention, is_event)
+        return self.match_predicted_to_gold_mention(mention, is_event, relaxed_match)
 
-    def match_predicted_to_gold_mention(self, pred_mention, is_event):
+    def match_predicted_to_gold_mention(self, pred_mention, is_event, relaxed_match):
         '''
         This function gets a predicted mention object and try to match it with a gold mention.
         The match is based on an exact string match, head match or
@@ -314,7 +231,7 @@ class Sentence(object):
                 pred_mention.gold_end = gold_mention.end_offset
                 found = True
                 break
-            elif self.same_head(pred_mention,gold_mention) and not gold_mention.has_compatible_mention: #not sure about the has_compatible_mention
+            elif relaxed_match and self.same_head(pred_mention,gold_mention) and not gold_mention.has_compatible_mention: #not sure about the has_compatible_mention
                 pred_mention.has_compatible_mention = True
                 gold_mention.has_compatible_mention = True
                 pred_mention.gold_mention_id = gold_mention.mention_id
@@ -323,7 +240,7 @@ class Sentence(object):
                 pred_mention.gold_end = gold_mention.end_offset
                 found = True
                 break
-            elif self.i_within_i(pred_mention, gold_mention) and not gold_mention.has_compatible_mention:
+            elif relaxed_match and self.i_within_i(pred_mention, gold_mention) and not gold_mention.has_compatible_mention:
                 pred_mention.has_compatible_mention = True
                 gold_mention.has_compatible_mention = True
                 pred_mention.gold_mention_id = gold_mention.mention_id
@@ -587,8 +504,10 @@ class EntityMention(Mention):
                 aloc_pred += pred[0]+'-'
 
         return '{}_a0-pred: {}_a1-pred: {}_loc-pred: {}_tmp-pred:' \
-               ' {}_{}'.format(super(EntityMention, self).__str__(), a0_pred, a1_pred, aloc_pred, atmp_pred,
-                                                            self.mention_id)
+               ' {}_{}'.format(super(EntityMention, self).__str__(), a0_pred,
+                               a1_pred, aloc_pred, atmp_pred,self.mention_id)
+
+
 class Token(object):
     '''
     A class represents a token in a sentence and contains the token ID
@@ -605,10 +524,6 @@ class Token(object):
         self.token = token
         self.gold_event_coref_chain = []
         self.gold_entity_coref_chain = []
-        self.pred_cd_entity_coref_chain = []
-        self.pred_cd_event_coref_chain = []
-        self.pred_wd_entity_coref_chain = []
-        self.pred_wd_event_coref_chain = []
 
     def get_token(self):
         '''
@@ -616,13 +531,6 @@ class Token(object):
         :return: the token's string
         '''
         return self.token
-
-    def get_coref_chain(self):
-        '''
-        A getter for the token's coreference gold chain
-        :return: a string that represents the coreference gold chain
-        '''
-        return self.gold_coref_chain
 
 
 class Srl_info(object):
@@ -638,7 +546,7 @@ class Srl_info(object):
         :param predicate:
         '''
         self.sent_id = sent_id
-        self.arg_info = arg_info  # a dictionary contains the predicate's arguments, key is an argument name and value is a list argument tokens
+        self.arg_info = arg_info # a dictionary contains the predicate's arguments, key is an argument name and value is a list argument tokens
         self.tok_id = tok_id
         self.predicate = predicate
 
@@ -692,10 +600,5 @@ class Cluster(object):
             mentions_strings.append(mention.mention_str)
         return mentions_strings
 
-    def clean_arg_vecs(self):
-        self.arg0_vec = None
-        self.arg1_vec = None
-        self.loc_vec = None
-        self.time_vec = None
 
 

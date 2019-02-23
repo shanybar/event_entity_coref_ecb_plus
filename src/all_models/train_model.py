@@ -92,8 +92,8 @@ def train_model(train_set, dev_set):
     cd_event_model = create_model(config_dict)
     cd_entity_model = create_model(config_dict)
 
-    cd_event_model.to(device)
-    cd_entity_model.to(device)
+    cd_event_model = cd_event_model.to(device)
+    cd_entity_model = cd_entity_model.to(device)
 
     cd_event_optimizer = create_optimizer(config_dict, cd_event_model)
     cd_entity_optimizer = create_optimizer(config_dict, cd_entity_model)
@@ -101,10 +101,7 @@ def train_model(train_set, dev_set):
     cd_event_loss = create_loss(config_dict)
     cd_entity_loss = create_loss(config_dict)
 
-    if config_dict["train_merge_sub_topics_to_topics"]:
-        topics = merge_sub_topics_to_topics(train_set)  # Use the gold topics
-    else:
-        topics = train_set.topics  # Use the gold sub-topics
+    topics = train_set.topics  # Use the gold sub-topics
 
     topics_num = len(topics.keys())
     event_best_dev_f1 = 0
@@ -134,9 +131,10 @@ def train_model(train_set, dev_set):
             event_mentions, entity_mentions = topic_to_mention_list(topic, is_gold=True)
 
             if config_dict["train_init_wd_entity_with_gold"]:
+                # initialize entity clusters with gold within document entity coreference chains
                 wd_entity_clusters = create_gold_wd_clusters_organized_by_doc(entity_mentions, is_event=False)
-
-            else:  # init entity clusters with WD coref system output
+            else:
+                # initialize entity clusters with within document entity coreference system output
                 wd_entity_clusters = init_entity_wd_clusters(entity_mentions, doc_to_entity_mentions)
 
             entity_clusters = []
@@ -158,10 +156,6 @@ def train_model(train_set, dev_set):
                 print('Iteration number {}'.format(i))
                 logging.info('Iteration number {}'.format(i))
 
-                if config_dict["train_th_decay"]: # optional
-                    if i > 1:
-                        entity_th -= 0.1
-                        event_th -= 0.1
 
                 # Entities
                 print('Train entity model and merge entity clusters...')
@@ -182,20 +176,12 @@ def train_model(train_set, dev_set):
 
         print('Testing models on dev set...')
         logging.info('Testing models on dev set...')
-        if config_dict["test_th_decay"]:
-            threshold_list = [0.4, 0.6, 0.8]
-        else:
-            threshold_list = config_dict["dev_th_range"]
+
+        threshold_list = config_dict["dev_th_range"]
         improved = False
         best_event_f1_for_th = 0
         best_entity_f1_for_th = 0
 
-        # if config_dict["test_th_decay"]:
-        #     best_event_th = (0.4,0.4)
-        #     best_entity_th = (0.4,0.4)
-        # else:
-        #     best_event_th = (config_dict["dev_th_range"][0],config_dict["dev_th_range"][0])
-        #     best_entity_th = (config_dict["dev_th_range"][0],config_dict["dev_th_range"][0])
         for event_threshold in threshold_list:
             for entity_threshold in threshold_list:
                 config_dict["event_merge_threshold"] = event_threshold
@@ -288,15 +274,15 @@ def train_and_merge(clusters, other_clusters, model, optimizer,
 
         # Update span representations after training
         create_mention_span_representations(event_mentions, model, device, topic.docs, is_event=True,
-                                            requires_grad=False, use_elmo=config_dict["use_elmo"])
+                                            requires_grad=False)
         create_mention_span_representations(entity_mentions, model, device, topic.docs, is_event=False,
-                                            requires_grad=False, use_elmo=config_dict["use_elmo"])
+                                            requires_grad=False)
 
         cluster_pairs = test_cluster_pairs
 
         # Merge clusters till reaching the threshold
         merge(clusters, cluster_pairs, other_clusters, model, device, topic.docs, epoch,
-              topics_counter, topics_num, threshold, is_event, config_dict["use_elmo"],
+              topics_counter, topics_num, threshold, is_event,
               config_dict["use_args_feats"], config_dict["use_binary_feats"])
 
 

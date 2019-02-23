@@ -24,7 +24,7 @@ def write_span_based_cd_coref_clusters(corpus, out_file, is_event, is_gold, use_
     This function writes the predicted clusters to a file (in a CoNLL format) in a span based manner,
     means that each token is written to the file
     and the coreference chain id is marked in a parenthesis, wrapping each mention span.
-    Used in Yang setup or any setup that requires matching of a predicted mentions with gold mentions.
+    Used in any setup that requires matching of a predicted mentions with gold mentions.
     :param corpus: A Corpus object, contains the documents of each split, grouped by topics.
     :param out_file: filename of the CoNLL output file
     :param is_event: whether to write event or entity mentions
@@ -76,11 +76,11 @@ def write_span_based_cd_coref_clusters(corpus, out_file, is_event, is_gold, use_
                         start = mention.start_offset
                         end = mention.end_offset
                     else: # ignore predicted mention that doesn't have compatible gold mention (following previous work)
-                        if mention.has_compatible_mention: # one should decide which span to use during evaluation (predicted span vs. gold span) since it is not clear what has been done in a previous work (Yang vs. Choubey)
-                            start = mention.gold_start
-                            end = mention.gold_end
-                            # start = mention.start_offset
-                            # end = mention.end_offset
+                        if mention.has_compatible_mention: # one should decide which span to use during evaluation (predicted span vs. gold span) since it is not clear what has been done in a previous work (Yang et al. and Choubey et al.)
+                            # start = mention.gold_start
+                            # end = mention.gold_end
+                            start = mention.start_offset
+                            end = mention.end_offset
                         else:
                             continue
                     if start == end:

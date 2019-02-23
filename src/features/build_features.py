@@ -16,9 +16,7 @@ sys.path.append("/src/shared/")
 
 from collections import defaultdict
 from swirl_parsing import parse_swirl_output
-from allen_srl_helper import parse_srl_output
 from allen_srl_reader import read_srl
-from prop_helper import parse_prop_output
 from create_elmo_embeddings import *
 from classes import Document, Sentence, Token, EventMention, EntityMention
 from extraction_utils import *
@@ -105,7 +103,9 @@ def load_mentions_from_json(mentions_json_file, docs, is_event, is_gold_mentions
         if is_gold_mentions:
             docs[doc_id].get_sentences()[sent_id].add_gold_mention(mention, is_event)
         else:
-            docs[doc_id].get_sentences()[sent_id].add_predicted_mention(mention, is_event)
+            docs[doc_id].get_sentences()[sent_id]. \
+                add_predicted_mention(mention, is_event,
+                                      relaxed_match=config_dict["relaxed_match_with_gold_mention"])
 
 
 def load_gold_mentions(docs,events_json, entities_json):
@@ -587,7 +587,7 @@ def set_elmo_embed_to_mention(mention, sent_embeddings):
     mention.head_elmo_embeddings = torch.from_numpy(head_embeddings)
 
 
-def set_elmo_embeddings_to_mentions(elmo_embedder, sentence):
+def set_elmo_embeddings_to_mentions(elmo_embedder, sentence, set_pred_mentions):
     '''
      Sets the ELMo embeddings for all the mentions in the sentence
     :param elmo_embedder: a wrapper object for ELMo model of Allen NLP
@@ -603,8 +603,19 @@ def set_elmo_embeddings_to_mentions(elmo_embedder, sentence):
     for entity in entity_mentions:
         set_elmo_embed_to_mention(entity, avg_sent_embeddings)
 
+    # Set the contextualized vector also for predicted mentions
+    if set_pred_mentions:
+        event_mentions = sentence.pred_event_mentions
+        entity_mentions = sentence.pred_entity_mentions
 
-def load_elmo_embeddings(dataset, elmo_embedder):
+        for event in event_mentions:
+            set_elmo_embed_to_mention(event, avg_sent_embeddings)  # set the head contextualized vector
+
+        for entity in entity_mentions:
+            set_elmo_embed_to_mention(entity, avg_sent_embeddings)  # set the head contextualized vector
+
+
+def load_elmo_embeddings(dataset, elmo_embedder, set_pred_mentions):
     '''
     Sets the ELMo embeddings for all the mentions in the split
     :param dataset: an object represents a split (train/dev/test)
@@ -614,7 +625,7 @@ def load_elmo_embeddings(dataset, elmo_embedder):
     for topic_id, topic in dataset.topics.items():
         for doc_id, doc in topic.docs.items():
             for sent_id, sent in doc.get_sentences().items():
-                set_elmo_embeddings_to_mentions(elmo_embedder, sent)
+                set_elmo_embeddings_to_mentions(elmo_embedder, sent, set_pred_mentions)
 
 
 def main(args):
@@ -638,7 +649,7 @@ def main(args):
     test_data = load_gold_data(config_dict["test_text_file"], config_dict["test_event_mentions"],
                                config_dict["test_entity_mentions"])
 
-    if config_dict["eval_mode"] == 1:
+    if config_dict["load_predicted_mentions"]:
         load_predicted_data(test_data, config_dict["pred_event_mentions"], config_dict["pred_entity_mentions"])
 
     train_set = order_docs_by_topics(training_data)
@@ -649,7 +660,7 @@ def main(args):
 
     write_dataset_statistics('dev', dev_set, check_predicted=False)
 
-    check_predicted = True if config_dict["eval_mode"] == 1 else False
+    check_predicted = True if config_dict["load_predicted_mentions"] else False
     write_dataset_statistics('test', test_set, check_predicted=check_predicted)
 
     if config_dict["use_srl"]:
@@ -662,7 +673,7 @@ def main(args):
             match_allen_srl_structures(dev_set, srl_data, is_gold=True)
             logger.info('Test gold mentions - loading SRL info')
             match_allen_srl_structures(test_set, srl_data, is_gold=True)
-            if config_dict["eval_mode"] == 1:
+            if config_dict["load_predicted_mentions"]:
                 logger.info('Test predicted mentions - loading SRL info')
                 match_allen_srl_structures(test_set, srl_data, is_gold=False)
         else: # Use SwiRL SRL system (Surdeanu et al., 2007)
@@ -673,7 +684,7 @@ def main(args):
             load_srl_info(dev_set, srl_data, is_gold=True)
             logger.info('Test gold mentions - loading SRL info')
             load_srl_info(test_set, srl_data, is_gold=True)
-            if config_dict["eval_mode"] == 1:
+            if config_dict["load_predicted_mentions"]:
                 logger.info('Test predicted mentions - loading SRL info')
                 load_srl_info(test_set, srl_data, is_gold=False)
     if config_dict["use_dep"]:  # use dependency parsing
@@ -684,7 +695,7 @@ def main(args):
         find_args_by_dependency_parsing(dev_set, is_gold=True)
         logger.info('Test gold mentions - loading predicates and their arguments with dependency parser')
         find_args_by_dependency_parsing(test_set, is_gold=True)
-        if config_dict["eval_mode"] == 1:
+        if config_dict["load_predicted_mentions"]:
             logger.info('Test predicted mentions - loading predicates and their arguments with dependency parser')
             find_args_by_dependency_parsing(test_set, is_gold=False)
     if config_dict["use_left_right_mentions"]:  # use left and right mentions heuristic
@@ -695,16 +706,16 @@ def main(args):
         find_left_and_right_mentions(dev_set, is_gold=True)
         logger.info('Test gold mentions - loading predicates and their arguments ')
         find_left_and_right_mentions(test_set, is_gold=True)
-        if config_dict["eval_mode"] == 1:
+        if config_dict["load_predicted_mentions"]:
             logger.info('Test predicted mentions - loading predicates and their arguments ')
             find_left_and_right_mentions(test_set, is_gold=False)
 
     if config_dict["load_elmo"]: # load ELMo embeddings
         elmo_embedder = ElmoEmbedding(config_dict["options_file"], config_dict["weight_file"])
         logger.info("Loading ELMO embeddings...")
-        load_elmo_embeddings(train_set, elmo_embedder)
-        load_elmo_embeddings(dev_set, elmo_embedder)
-        load_elmo_embeddings(test_set, elmo_embedder)
+        load_elmo_embeddings(train_set, elmo_embedder, set_pred_mentions=False)
+        load_elmo_embeddings(dev_set, elmo_embedder, set_pred_mentions=False)
+        load_elmo_embeddings(test_set, elmo_embedder, set_pred_mentions=True)
 
     logger.info('Storing processed data...')
     with open(os.path.join(args.output_path,'training_data'), 'wb') as f:

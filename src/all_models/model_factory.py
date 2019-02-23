@@ -18,6 +18,7 @@ and are loaded before the training/inference starts.
 
 '''
 
+
 def factory_load_embeddings(config_dict):
     '''
     Given a configuration dictionary, containing the paths to the embeddings files,
@@ -37,15 +38,13 @@ def create_model(config_dict):
     '''
     global word_embeds, word_to_ix, char_embeds, char_to_ix
 
-    if config_dict["use_elmo"]:
-        if config_dict["use_args_feats"]:
-            mention_rep_size = 1024 + \
-                              ((word_embeds.shape[1] + config_dict["char_rep_size"]) * 5)
-        else:
-            mention_rep_size = 1024 + word_embeds.shape[1] + config_dict["char_rep_size"]
+    context_vector_size = 1024
+
+    if config_dict["use_args_feats"]:
+        mention_rep_size = context_vector_size + \
+                            ((word_embeds.shape[1] + config_dict["char_rep_size"]) * 5)
     else:
-        mention_rep_size = (config_dict["mention_span_lstm_size"] * 2) + \
-                          ((word_embeds.shape[1] + config_dict["char_rep_size"]) * 5)
+        mention_rep_size = context_vector_size + word_embeds.shape[1] + config_dict["char_rep_size"]
 
     input_dim = mention_rep_size * 3
 
@@ -56,15 +55,13 @@ def create_model(config_dict):
     third_dim = second_dim
     model_dims = [input_dim, second_dim, third_dim]
 
-    model = CDCorefScorer(word_embeds, word_to_ix, word_embeds.shape[0], dims = model_dims,
-                          char_embedding=char_embeds, char_to_ix = char_to_ix,
+    model = CDCorefScorer(word_embeds, word_to_ix, word_embeds.shape[0],
+                          char_embedding=char_embeds, char_to_ix=char_to_ix,
                           char_rep_size=config_dict["char_rep_size"],
-                          lexical_feats_type=config_dict["lexical_feats"]
-                          ,args_feats_type=config_dict["argument_feats"],
+                          dims=model_dims,
                           use_mult=config_dict["use_mult"],
                           use_diff=config_dict["use_diff"],
-                          feature_size=config_dict["feature_size"],
-                          mention_span_lstm_hidden_size=config_dict["mention_span_lstm_size"])
+                          feature_size=config_dict["feature_size"])
 
     return model
 
@@ -104,11 +101,7 @@ def create_loss(config_dict):
     '''
     loss_function = None
 
-    if config_dict["loss"] == 'mse':
-        loss_function = nn.MSELoss()
-    elif config_dict["loss"] == 'l1':
-        loss_function = nn.L1Loss()
-    elif config_dict["loss"] == 'bce':
+    if config_dict["loss"] == 'bce':
         loss_function = nn.BCELoss()
 
     assert (loss_function is not None), "Config error, check the loss field"

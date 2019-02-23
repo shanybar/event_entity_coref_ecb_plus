@@ -87,8 +87,12 @@ def read_conll_f1(filename):
 
 
 def run_conll_scorer():
-    event_response_filename = os.path.join(args.out_dir, 'CD_test_event_mention_based.response_conll')
-    entity_response_filename = os.path.join(args.out_dir, 'CD_test_entity_mention_based.response_conll')
+    if config_dict["test_use_gold_mentions"]:
+        event_response_filename = os.path.join(args.out_dir, 'CD_test_event_mention_based.response_conll')
+        entity_response_filename = os.path.join(args.out_dir, 'CD_test_entity_mention_based.response_conll')
+    else:
+        event_response_filename = os.path.join(args.out_dir, 'CD_test_event_span_based.response_conll')
+        entity_response_filename = os.path.join(args.out_dir, 'CD_test_entity_span_based.response_conll')
 
     event_conll_file = os.path.join(args.out_dir,'event_scorer_cd_out.txt')
     entity_conll_file = os.path.join(args.out_dir,'entity_scorer_cd_out.txt')
