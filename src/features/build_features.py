@@ -459,8 +459,11 @@ def find_topic_gold_clusters(topic):
     '''
     event_mentions = []
     entity_mentions = []
-    event_gold_tag_to_cluster = defaultdict(list)
-    entity_gold_tag_to_cluster = defaultdict(list)
+    # event_gold_tag_to_cluster = defaultdict(list)
+    # entity_gold_tag_to_cluster = defaultdict(list)
+
+    event_gold_tag_to_cluster = {}
+    entity_gold_tag_to_cluster = {}
 
     for doc_id, doc in topic.docs.items():
         for sent_id, sent in doc.sentences.items():
@@ -469,9 +472,13 @@ def find_topic_gold_clusters(topic):
 
     for event in event_mentions:
         if event.gold_tag != '-':
+            if event.gold_tag not in event_gold_tag_to_cluster:
+                event_gold_tag_to_cluster[event.gold_tag] = []
             event_gold_tag_to_cluster[event.gold_tag].append(event)
     for entity in entity_mentions:
         if entity.gold_tag != '-':
+            if entity.gold_tag not in entity_gold_tag_to_cluster:
+                entity_gold_tag_to_cluster[entity.gold_tag] = []
             entity_gold_tag_to_cluster[entity.gold_tag].append(entity)
 
     return event_gold_tag_to_cluster, entity_gold_tag_to_cluster, event_mentions, entity_mentions
@@ -496,6 +503,7 @@ def write_dataset_statistics(split_name, dataset, check_predicted):
     matched_predicted_event_count = 0
     matched_predicted_entity_count = 0
 
+
     for topic_id, topic in dataset.topics.items():
         event_gold_tag_to_cluster, entity_gold_tag_to_cluster, \
         event_mentions, entity_mentions = find_topic_gold_clusters(topic)
@@ -504,8 +512,21 @@ def write_dataset_statistics(split_name, dataset, check_predicted):
         sent_count += sum([len(doc.sentences.keys()) for doc_id, doc in topic.docs.items()])
         event_mentions_count += len(event_mentions)
         entity_mentions_count += len(entity_mentions)
-        event_chains_count += len(event_gold_tag_to_cluster.keys())
-        entity_chains_count += len(entity_gold_tag_to_cluster.keys())
+
+        entity_chains = set()
+        event_chains = set()
+
+        for mention in entity_mentions:
+            entity_chains.add(mention.gold_tag)
+
+        for mention in event_mentions:
+            event_chains.add(mention.gold_tag)
+
+        # event_chains_count += len(set(event_gold_tag_to_cluster.keys()))
+        # entity_chains_count += len(set(entity_gold_tag_to_cluster.keys()))
+
+        event_chains_count += len(event_chains)
+        entity_chains_count += len(entity_chains)
 
         if check_predicted:
             for doc_id, doc in topic.docs.items():

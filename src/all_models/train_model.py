@@ -182,15 +182,37 @@ def train_model(train_set, dev_set):
         best_event_f1_for_th = 0
         best_entity_f1_for_th = 0
 
+        if event_best_dev_f1 > 0:
+            best_saved_cd_event_model = load_check_point(os.path.join(args.out_dir,
+                                                                      'cd_event_best_model'))
+            best_saved_cd_event_model.to(device)
+        else:
+            best_saved_cd_event_model = cd_event_model
+
+        if entity_best_dev_f1 > 0:
+            best_saved_cd_entity_model = load_check_point(os.path.join(args.out_dir,
+                                                                       'cd_entity_best_model'))
+            best_saved_cd_entity_model.to(device)
+        else:
+            best_saved_cd_entity_model = cd_entity_model
+
         for event_threshold in threshold_list:
             for entity_threshold in threshold_list:
                 config_dict["event_merge_threshold"] = event_threshold
                 config_dict["entity_merge_threshold"] = entity_threshold
                 print('Testing models on dev set with threshold={}'.format((event_threshold,entity_threshold)))
                 logging.info('Testing models on dev set with threshold={}'.format((event_threshold,entity_threshold)))
-                event_f1, entity_f1 = test_models(dev_set, cd_event_model, cd_entity_model, device,
+
+                # test event coref on dev
+                event_f1, _ = test_models(dev_set, cd_event_model, best_saved_cd_entity_model, device,
                                                   config_dict, write_clusters=False, out_dir=args.out_dir,
                                                   doc_to_entity_mentions=doc_to_entity_mentions, analyze_scores=False)
+
+                # test entity coref on dev
+                _, entity_f1 = test_models(dev_set, best_saved_cd_event_model, cd_entity_model, device,
+                                                  config_dict, write_clusters=False, out_dir=args.out_dir,
+                                                  doc_to_entity_mentions=doc_to_entity_mentions, analyze_scores=False)
+
                 if event_f1 > best_event_f1_for_th:
                     best_event_f1_for_th = event_f1
                     best_event_th = (event_threshold,entity_threshold)
