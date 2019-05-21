@@ -74,15 +74,16 @@ def create_optimizer(config_dict, model):
     :param model: an initialized CDCorefScorer object
     :return: Pytorch optimizer
     '''
+    lr = config_dict["lr"]
     optimizer = None
     parameters = filter(lambda p: p.requires_grad,model.parameters())
     if config_dict["optimizer"] == 'adadelta':
-        optimizer = optim.Adadelta(parameters, lr=config_dict["lr"],
+        optimizer = optim.Adadelta(parameters, lr=lr,
                                    weight_decay=config_dict["weight_decay"])
     elif config_dict["optimizer"] == 'adam':
-        optimizer = optim.Adam(parameters, lr=config_dict["lr"], weight_decay=config_dict["weight_decay"])
+        optimizer = optim.Adam(parameters, lr=lr, weight_decay=config_dict["weight_decay"])
     elif config_dict["optimizer"] == 'sgd':
-        optimizer = optim.SGD(parameters, lr=config_dict["lr"], momentum=config_dict["momentum"],
+        optimizer = optim.SGD(parameters, lr=lr, momentum=config_dict["momentum"],
                               nesterov=True)
 
     assert (optimizer is not None), "Config error, check the optimizer field"

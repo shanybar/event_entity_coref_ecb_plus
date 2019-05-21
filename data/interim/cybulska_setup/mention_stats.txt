@@ -1,0 +1,44 @@
+Train set statistics
+-------------------------
+Number of event mentions - 3808
+Number of human participants mentions - 2505
+Number of non-human participants mentions - 964
+Number of location mentions - 674
+Number of time mentions - 615
+Total number of mentions - 8566
+Number of non-continuous mentions - 33
+Number of mentions with coref id = UNK - 78
+
+Dev set statistics
+-------------------------
+Number of event mentions - 1245
+Number of human participants mentions - 941
+Number of non-human participants mentions - 87
+Number of location mentions - 209
+Number of time mentions - 239
+Total number of mentions - 2721
+Number of non-continuous mentions - 7
+Number of mentions with coref id = UNK - 20
+
+Test set statistics
+-------------------------
+Number of event mentions - 1780
+Number of human participants mentions - 1169
+Number of non-human participants mentions - 357
+Number of location mentions - 290
+Number of time mentions - 239
+Total number of mentions - 3835
+Number of non-continuous mentions - 12
+Number of mentions with coref id = UNK - 70
+
+Total statistics
+-------------------------
+Number of event mentions - 6833
+Number of human participants mentions - 4615
+Number of non-human participants mentions - 1408
+Number of location mentions - 1173
+Number of time mentions - 1093
+Total number of mentions - 15122
+Number of non-continuous mentions - 52
+Number of mentions with coref id = UNK - 168
+

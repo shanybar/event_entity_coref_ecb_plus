@@ -551,8 +551,6 @@ def write_dataset_statistics(split_name, dataset, check_predicted):
         f.write('Number of sentences - {}\n'.format(sent_count))
         f.write('Number of event mentions - {}\n'.format(event_mentions_count))
         f.write('Number of entity mentions - {}\n'.format(entity_mentions_count))
-        f.write('Number of event coref chains - {}\n'.format(event_chains_count))
-        f.write('Number of entity coref chains - {}\n'.format(entity_chains_count))
 
         if check_predicted:
             f.write('Number of predicted event mentions  - {}\n'.format(predicted_events_count))

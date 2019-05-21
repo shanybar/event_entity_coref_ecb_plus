@@ -176,6 +176,7 @@ def write_mention_based_cd_clusters(corpus, is_event, is_gold,out_file):
             for sent_id in sorted(curr_doc.sentences.keys()):
                 curr_sent = curr_doc.sentences[sent_id]
                 mentions = curr_sent.gold_event_mentions if is_event else curr_sent.gold_entity_mentions
+                mentions.sort(key=lambda x: x.start_offset, reverse=True)
                 for mention in mentions:
                     # map the gold coref tags to unique ids
                     if is_gold:  # creating the key files

@@ -1,33 +1,24 @@
-{"test_path":"data/processed/cybulska_setup/full_allen_srl/test_data",
+{"test_path":"data/processed/cybulska_setup/full_swirl_ecb/test_data",
 
-  "cd_event_model_path": "models/cybulska_setup/feb/09_02_1/cd_event_best_model",
-  "cd_entity_model_path": "models/cybulska_setup/feb/09_02_1/cd_entity_best_model",
+  "cd_event_model_path": "models/cybulska_setup/cd_event_best_model",
+  "cd_entity_model_path": "models/cybulska_setup/cd_entity_best_model",
 
-  "gpu_num": 1,
-  "event_merge_threshold": 0.3,
-  "entity_merge_threshold": 0.3,
+  "gpu_num": 0,
+  "event_merge_threshold": 0.5,
+  "entity_merge_threshold": 0.5,
   "use_elmo": true,
   "use_args_feats": true,
   "use_binary_feats": true,
 
   "test_use_gold_mentions": true,
-  "remove_singletons": false,
-
   "wd_entity_coref_file": "data/external/stanford_neural_wd_entity_coref_out/ecb_wd_coref.json",
-  "test_init_wd_entity_with_gold": false,
-
-  "eval_mode": 2,
-  "test_merge_sub_topics_to_topics": false,
-  "test_cluster_wd_first": false,
   "merge_iters": 2,
 
   "load_predicted_topics": true,
   "predicted_topics_path": "data/external/document_clustering/predicted_topics",
 
-  "test_init_with_lemma_baseline": false,
   "seed": 1,
   "random_seed": 2048,
-  "test_th_decay": false,
 
   "event_gold_file_path": "data/gold/cybulska_gold/CD_test_event_mention_based.key_conll",
   "entity_gold_file_path": "data/gold/cybulska_gold/CD_test_entity_mention_based.key_conll"
