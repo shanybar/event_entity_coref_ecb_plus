@@ -1,5 +1,4 @@
-Please go over the module_versions.txt file before running this code.
-
+Please go over the module_versions.txt file and the config_files_readme.txt before running any code.
 
 1) Extraction of gold mentions and documents from the ECB+ corpus:
 ------------------------------------------------------------------
@@ -22,14 +21,16 @@ python src/data/make_dataset.py --ecb_path data/raw/ECB+ --output_dir data/inter
 python src/features/build_features.py --config_path build_features_config.json --output_path data/processed/...
 
     Parameters:
-        config_path - a path to a JSON file holds the feature extraction configuration (build_features_config.json)
+        config_path - a path to a JSON file holds the feature extraction configuration (build_features_config.json).
+                        An explanation about this configuration file is provided in config_files_readme.txt.
         output_path - a path to the output directory
 
     Output:
-        The script saves 3 pickle files, each contains a Corpus object representing the split.
+        The script saves 3 pickle files, each contains a Corpus object representing the split,
+        and can be used for running the train_model.py and the test_model.py scripts.
 
     Notes:
-        Requires the output file/files of SwiRL SRL system or a JSON file
+        Requires the output file/files of SwiRL SRL system
 
 3) Train cross-document event and entity coreference models:
 ------------------------------------------------------------
@@ -37,6 +38,7 @@ python src/all_models/train_model.py --config_path train_config.json --out_dir m
 
      Parameters:
         config_path - a path to a JSON file holds the training configuration (train_config.json)
+                      An explanation about this configuration file is provided in config_files_readme.txt.
         out_dir - an output directory
 
      Output:
@@ -51,12 +53,12 @@ python src/all_models/predict_model.py --config_path test_config.json --out_dir 
 
         Parameters:
             config_path - a path to a JSON file holds the test configuration (test_config.json)
+                          An explanation about this configuration file is provided in config_files_readme.txt.
             out_dir - an output directory
 
-        Output:
-             Response (aka system prediction) files:
-                1) CD_test_event_mention_based.response_conll - cross-document event coreference
-                clusters in a CoNLL format (suitable as an input to CoNLL scorer)
-                2) CD_test_entity_mention_based.response_conll - cross-document entity coreference
-                clusters in a CoNLL format (suitable as an input to CoNLL scorer)
+        Main output:
+                1) Two response (aka system prediction) files - CD_test_entity_mention_based.response_conll and CD_test_event_mention_based.response_conll.
+                 One for entity coreference and another on for event coreference.
+                 Both of them are in a CoNLL format (suitable as an input to CoNLL scorer).
+                2) conll_f1_scores.txt - A text file contains the CoNLL coreference scorer's output (F1 score).
 
