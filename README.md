@@ -85,6 +85,7 @@ The script saves for each data split (train/dev/test):
 * A json file contains its mention objects.
 * A text file contains its sentences.
 
+
 * Run the feature extraction script, which extracts predicate-argument structures,
   mention head and ELMo embeddings, for each mention in each split (train/dev/test):
     `python src/features/build_features.py --config_path build_features_config.json --output_path <output_path>`
