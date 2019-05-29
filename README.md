@@ -71,8 +71,8 @@ Note - the script's configuration file (train_config.json) also requires:
 This repository provides pre-processed data for the ECB+ corpus (download from https://drive.google.com/open?id=197jYq5lioefABWP11cr4hy4Ohh1HMPGK).
 In case you want to create the data from scratch, do the following steps:
 
-* Extract the gold mentions and documents from the ECB+ corpus:
-    `python src/data/make_dataset.py --ecb_path <ecb_path> --output_dir <output_directory> --data_setup 2 --selected_sentences_file       data/raw/ECBplus_coreference_sentences.csv`
+Extract the gold mentions and documents from the ECB+ corpus:
+   `python src/data/make_dataset.py --ecb_path <ecb_path> --output_dir <output_directory> --data_setup 2 --selected_sentences_file       data/raw/ECBplus_coreference_sentences.csv`
 
 Where:
 * `ecb_path` - a directory contains the ECB+ documents (can be downloaded from http://www.newsreader-project.eu/results/data/the-ecb-corpus/).
@@ -85,10 +85,9 @@ The script saves for each data split (train/dev/test):
 * A json file contains its mention objects.
 * A text file contains its sentences.
 
-
-* Run the feature extraction script, which extracts predicate-argument structures,
-  mention head and ELMo embeddings, for each mention in each split (train/dev/test):
-    `python src/features/build_features.py --config_path build_features_config.json --output_path <output_path>`
+Run the feature extraction script, which extracts predicate-argument structures,
+mention head and ELMo embeddings, for each mention in each split (train/dev/test):
+   `python src/features/build_features.py --config_path build_features_config.json --output_path <output_path>`
 
 Where:
 * `config_path` - a path to a JSON file holds the feature extraction configuration (build_features_config.json).
