@@ -20,7 +20,7 @@ trained and evaluated on the ECB+ corpus.
 * [NLTK](https://www.nltk.org/) 3.4
 * [scikit-learn](https://scikit-learn.org/) 0.20.2
 * [SciPy](https://www.scipy.org/) 1.2.1
-    * Install also the spacy en model with `python -m spacy download en`
+    * Install the spacy en model with `python -m spacy download en`
 * [seaborn] (https://seaborn.pydata.org/) 0.9.0
 * [AllenNLP](https://allennlp.org/) 0.5.1
 
@@ -36,14 +36,20 @@ Where:
 * `out_dir` - an output directory.
 
 Main output:
-* Two response (aka system prediction) files - `CD_test_entity_mention_based.response_conll` and `CD_test_event_mention_based.response_conll`.
-  One for entity coreference and another on for event coreference.
-  Both of them are in a CoNLL format (suitable as an input to the CoNLL scorer).
+* Two response (aka system prediction) files:
+   * `CD_test_entity_mention_based.response_conll` - entity coreference results in CoNLL format.
+   * `CD_test_event_mention_based.response_conll` - event coreference results in CoNLL format.
 * `conll_f1_scores.txt` - A text file contains the CoNLL coreference scorer's output (F1 score).
+
+Notes:
+   The script's configuration file also requires: 
+   * Output file of within-document entity coreference system for the ECB+ corpus (provided in this repo at             data/external/stanford_neural_wd_entity_coref_out/ecb_wd_coref.json)
+   * Output file of the document clustering algorithm that has been described in the paper (provided in this repo at data/external/document_clustering/predicted_topics)
 
 ## Training Instructions
 * Download pre-processed data for the ECB+ corpus at https://drive.google.com/open?id=197jYq5lioefABWP11cr4hy4Ohh1HMPGK.
-    * Alternatively, you can create the data from scratch by running the make_dataset.py and build_features.py scripts (see instructions below).
+    * Alternatively, you can create the data from scratch by running the make_dataset.py and build_features.py
+    scripts (see instructions below).
 * Run the script train_model.py with the command:
    `python src/all_models/train_model.py --config_path train_config.json --out_dir <output_directory>`
 
@@ -58,12 +64,17 @@ Main Output:
     * `cd_entity_best_model` - the entity model that got the highest B-cubed F1 score on the dev set.
 * `summery.txt` - a summary of the training.
 
-## Creating the Data from Scratch
+Notes:
+   The script's configuration file also requires: 
+   * Output files of within-document entity coreference system for the ECB+ corpus (provided in this repo at             data/external/stanford_neural_wd_entity_coref_out)
+ 
+
+## Creating Data from Scratch
 This repository provides pre-processed data for the ECB+ corpus (download from https://drive.google.com/open?id=197jYq5lioefABWP11cr4hy4Ohh1HMPGK).
 In case you want to create the data by yourself, do the following steps:
 
 * Extract the gold mentions and documents from the ECB+ corpus:
-    `python src/data/make_dataset.py --ecb_path <ecb_path> --output_dir data/interim/... --data_setup 2 --selected_sentences_file data/raw/ECBplus_coreference_sentences.csv`
+    `python src/data/make_dataset.py --ecb_path <ecb_path> --output_dir <output_directory> --data_setup 2 --selected_sentences_file       data/raw/ECBplus_coreference_sentences.csv`
 
 Where:
 * `ecb_path` - a directory contains the ECB+ documents (can be downloaded from http://www.newsreader-project.eu/results/data/the-ecb-corpus/).
@@ -77,7 +88,7 @@ The script saves for each data split (train/dev/test):
 * A text file contains its sentences.
 
 * Run the feature extraction script, which extracts predicate-argument structures,
-mention head and ELMo embeddings, for each mention in each split (train/dev/test):
+  mention head and ELMo embeddings, for each mention in each split (train/dev/test):
     `python src/features/build_features.py --config_path build_features_config.json --output_path <output_path>`
 
 Where:
