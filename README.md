@@ -41,8 +41,7 @@ Main output:
    * `CD_test_event_mention_based.response_conll` - event coreference results in CoNLL format.
 * `conll_f1_scores.txt` - A text file contains the CoNLL coreference scorer's output (F1 score).
 
-Notes:
-   The script's configuration file also requires: 
+Note - the script's configuration file also requires: 
    * Output file of within-document entity coreference system for the ECB+ corpus (provided in this repo at             data/external/stanford_neural_wd_entity_coref_out/ecb_wd_coref.json)
    * Output file of the document clustering algorithm that has been described in the paper (provided in this repo at data/external/document_clustering/predicted_topics)
 
@@ -64,8 +63,7 @@ Main Output:
     * `cd_entity_best_model` - the entity model that got the highest B-cubed F1 score on the dev set.
 * `summery.txt` - a summary of the training.
 
-Notes:
-   The script's configuration file also requires: 
+Note - the script's configuration file also requires: 
    * Output files of within-document entity coreference system for the ECB+ corpus (provided in this repo at             data/external/stanford_neural_wd_entity_coref_out)
  
 
@@ -102,7 +100,7 @@ This script saves 3 pickle files, each contains a Corpus object representing eac
 * `dev_data` - the dev data, used with the script train_model.py.
 * `test_data` - the test data, used with the script predict_model.py.
 
-Notes:
-   Requires output files of SwiRL SRL system for ECB+ corpus (provided in this repo at data/external/swirl_output)
+Note - the script's configuration file also requires: 
+   * Output files of SwiRL SRL system for ECB+ corpus (provided in this repo at data/external/swirl_output)
 
 
