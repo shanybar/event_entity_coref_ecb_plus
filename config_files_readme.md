@@ -1,11 +1,11 @@
-## Configuration Files
+## Configuration files
 In this system, experiments are configured using JSON files.
 This readme explains the main attributes of two JSON configuration files:
 * build_features_config.json
 * train_config.json
 * test_config.json
 
-## The Feature Extraction Configuration File (build_features_config.json):
+## Configuration file for feature extraction (build_features_config.json):
 
 Used with the script features/build_features.py .
 To extract features for event and entity mentions, it requires two types of input files
@@ -19,7 +19,7 @@ and entity mentions (with predicate-argument structures extraction).
 * SwiRL system's output on the ECB+ corpus is provided with this repo (its directory should be assigned to the srl_output_path attribute).
 * ELMo's files (options_file, weight_file) can be downloaded from - *https://allennlp.org/elmo* (we used Original 5.5B model files).
 
-## The Training Configuration File (train_config.json):
+## Configuration file for training (train_config.json):
 
 Used with the script src/all_models/train_model.py.
 The provided `train_config.json` file is configured for training joint model for CD entity and event coreference.
@@ -41,8 +41,7 @@ to be explained:
 * `wd_entity_coref_file` - a path to a file (provided in this repo) which contains the predictions of a WD entity coreference system on the ECB+. We use CoreNLP for that purpose.
 
 
-
-## The Testing Configuration File (test_config.json):
+## Configuration file for testing (test_config.json):
 
 Used with the script src/all_models/test_model.py .
 The provided test_config.json file is configured for testing the joint model for cross-document entity and event coreference.

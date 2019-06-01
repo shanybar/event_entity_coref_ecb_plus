@@ -21,7 +21,7 @@ The model was trained and evaluated on the ECB+ corpus.
 * [scikit-learn](https://scikit-learn.org/) 0.20.2
 * [SciPy](https://www.scipy.org/) 1.2.1
     * Install the spacy en model with `python -m spacy download en`
-* [seaborn] (https://seaborn.pydata.org/) 0.9.0
+* [seaborn](https://seaborn.pydata.org/) 0.9.0
 * [AllenNLP](https://allennlp.org/) 0.5.1
 
 ## Testing Instructions
@@ -74,7 +74,7 @@ In case you want to create the data from scratch, do the following steps:
 
 Download ELMo's files (options file and weights) from *https://allennlp.org/elmo* (we used Original 5.5B model files).
 
-### Load the ECB+ corpus
+### Loading the ECB+ corpus
 Extract the gold mentions and documents from the ECB+ corpus:
    `python src/data/make_dataset.py --ecb_path <ecb_path> --output_dir <output_directory> --data_setup 2 --selected_sentences_file       data/raw/ECBplus_coreference_sentences.csv`
 
