@@ -12,7 +12,7 @@ The model was trained and evaluated on the ECB+ corpus.
 ## Prerequisites
 * Python 3.6
 * [PyTorch](https://pytorch.org/) 0.4.0
-    * We specifically used PyTorch 0.4.0 with CUDA 9.0 on Linux, which can be installed with the following:
+    * We specifically used PyTorch 0.4.0 with CUDA 9.0 on Linux, which can be installed using the command:
     `pip install https://download.pytorch.org/whl/cu90/torch-0.4.0-cp36-cp36m-linux_x86_64.whl`
 * [spaCy](https://spacy.io/) 2.0.18
 * [Matplotlib](https://matplotlib.org/) 3.0.2
