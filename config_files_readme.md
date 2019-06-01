@@ -1,13 +1,13 @@
 ## Configuration files
 In this system, experiments are configured using JSON files.
-This readme explains the main attributes of two JSON configuration files:
+This readme explains the main attributes of three JSON configuration files:
 * build_features_config.json
 * train_config.json
 * test_config.json
 
 ## Configuration file for feature extraction (build_features_config.json):
 
-Used with the script features/build_features.py .
+Used with the script src/features/build_features.py .
 To extract features for event and entity mentions, it requires two types of input files
 for each split (train/dev/test):
 * A json file contains its mention objects (e.g. `train_event_mentions`).
