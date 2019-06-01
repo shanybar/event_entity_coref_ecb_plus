@@ -17,7 +17,7 @@ Notes:
 * The provided build_features_config.json file is configured for extracting joint features for event
 and entity mentions (with predicate-argument structures extraction).
 * SwiRL system's output on the ECB+ corpus is provided with this repo (its directory should be assigned to the srl_output_path attribute).
-* ELMo's files (options_file, weight_file) can be downloaded from - https://allennlp.org/elmo (we used Original 5.5B model files).
+* ELMo's files (options_file, weight_file) can be downloaded from - *https://allennlp.org/elmo* (we used Original 5.5B model files).
 
 ## The Training Configuration File (train_config.json):
 
@@ -27,15 +27,15 @@ The provided `train_config.json` file is configured for training joint model for
 Most of the attributes are self-explained (e.g. batch_size and lr) , but there are few how need
 to be explained:
 * `char_pretrained_path/char_vocab_path`: initial character embeddings (provided in this repo in data/external/char_embed). 
-    You can download the original embeddings from https://github.com/minimaxir/char-embeddings.
+    You can download the original embeddings from *https://github.com/minimaxir/char-embeddings*.
 * `char_rep_size` - The character LSTM's hidden size.
 * `feature_size` - embedding size of binary features.
-* `glove_path` - path to pre-trained word embeddings. We used glove.6B.300d which can be downloaded from https://nlp.stanford.edu/projects/glove/ .
+* `glove_path` - path to pre-trained word embeddings. We used glove.6B.300d which can be downloaded from *https://nlp.stanford.edu/projects/glove/*.
 * `train_path/dev_path` - path to the pickle files of the train/dev sets, created by the build_features script.
 * `dev_th_range` - threshold range to tune on the validation set.
 * `entity_merge_threshold/event_merge_threshold` - merge threshold during training (for entities/events).
 * `merge_iters` -  for how many iterations to run the agglomerative clustering step (during both training and testing). We used 2 iterations.
-* `patient` - how many epochs we allow the model continue training without an improvement on the dev set.
+* `patient` - for how many epochs we allow the model continue training without an improvement on the dev set.
 * `use_args_feats` - whether to use argument/predicates vectors.
 * `use_binary_feats` -  whether to use the coreference binary features.
 * `wd_entity_coref_file` - a path to a file (provided in this repo) which contains the predictions of a WD entity coreference system on the ECB+. We use CoreNLP for that purpose.
@@ -57,7 +57,7 @@ The main attributes of this configuration files are:
 * `wd_entity_coref_file` - a path to a file (provided) which contains the predictions of a WD entity coreference system on the ECB+. We use CoreNLP for that purpose.
 * `event_gold_file_path` - path to the key (gold) event coreference file (for running the evaluation with the CoNLL scorer), Provided.
 * `entity_gold_file_path` - path to the key (gold) entity coreference file (for running the evaluation with the CoNLL scorer), Provided.
-* `predicted_topics_path` - path to a pickle file holds the predicted topics (can be obtained using the code provided in the folder doc_clustering)
-* `wd_entity_coref_file` - a path to a file (provided) which contains the predictions of a WD entity coreference system on the ECB+. We use CoreNLP for that purpose.
+* `predicted_topics_path` - path to a pickle file which contains the predicted topics, provided in this repo at data/external/document_clustering or can be obtained using the code in the folder src/doc_clustering.
+* `wd_entity_coref_file` - a path to a file (provided in this repo) which contains the predictions of a WD entity coreference system on the ECB+. We use CoreNLP for that purpose.
 
 
