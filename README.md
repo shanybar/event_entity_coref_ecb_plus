@@ -15,12 +15,12 @@ The model was trained and evaluated on the ECB+ corpus.
     * We specifically used PyTorch 0.4.0 with CUDA 9.0 on Linux, which can be installed using the command:
     `pip install https://download.pytorch.org/whl/cu90/torch-0.4.0-cp36-cp36m-linux_x86_64.whl`
 * [spaCy](https://spacy.io/) 2.0.18
+    *  Install the spacy en model with `python -m spacy download en`
 * [Matplotlib](https://matplotlib.org/) 3.0.2
 * [NumPy](https://www.numpy.org/) 1.16.1
 * [NLTK](https://www.nltk.org/) 3.4
 * [scikit-learn](https://scikit-learn.org/) 0.20.2
 * [SciPy](https://www.scipy.org/) 1.2.1
-    * Install the spacy en model with `python -m spacy download en`
 * [seaborn](https://seaborn.pydata.org/) 0.9.0
 * [AllenNLP](https://allennlp.org/) 0.5.1
 
@@ -81,7 +81,7 @@ Extract the gold mentions and documents from the ECB+ corpus:
 Where:
    * `ecb_path` - a directory contains the ECB+ documents (can be downloaded from *http://www.newsreader-project.eu/results/data/the-ecb-corpus/*).
    * `output_dir` - output directory.
-   * `data_setup` - enter '2' for loading the ECB+ data in Cybulska setup (see the setup description in the paper).
+   * `data_setup` - enter '2' to load the ECB+ data in the same evaluation setup as used in our experiments (see the setup description in the paper).
    * `selected_sentences_file` - path to a CSV file contains the selected sentences.
 
 Output:
@@ -98,7 +98,7 @@ mention head and ELMo embeddings, for each mention in each split (train/dev/test
 Where:
    * `config_path` - a path to a JSON file holds the feature extraction configuration (build_features_config.json).
                   An explanation about this configuration file is provided in config_files_readme.md.
-   * `output_path` - a path to the output directory
+   * `output_path` - a path to the output directory.
 
 Output:
 This script saves 3 pickle files, each contains a Corpus object representing each split:
@@ -108,7 +108,7 @@ This script saves 3 pickle files, each contains a Corpus object representing eac
 
 Note - the script's configuration file also requires:
    * The output files of the script `make_dataset.py` (JSON and text files).
-   * Output files of SwiRL SRL system for ECB+ corpus (provided in this repo at data/external/swirl_output).
+   * Output files of SwiRL SRL system on the ECB+ corpus (provided in this repo at data/external/swirl_output).
 
 
 ## Contact info
